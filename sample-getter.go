@@ -25,8 +25,12 @@ func NewSampleGetter(user, password, address, database string) SampleGetter {
 	return sg
 }
 
+func (sg SampleGetter) String() string {
+	return fmt.Sprintf("SampleGetter{address: %s, database: %s}", sg.address, sg.database)
+}
+
 func (sg SampleGetter) Query(querystring string) (*sql.Rows, error) {
-	con, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s/%s?charset=utf8", sg.user, sg.password, sg.address, sg.database))
+	con, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8", sg.user, sg.password, sg.address, sg.database))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +59,6 @@ func (sg SampleGetter) GetCitationByNumber(number uint64) ([]Citation, error) {
 			return []Citation{}, err
 		}
 
-		//log.Printf("Loaded citation %s: %s", cit.citationnumber, cit.CitationDate)
 		cits = append(cits, cit)
 	}
 

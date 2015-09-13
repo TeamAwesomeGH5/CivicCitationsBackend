@@ -71,7 +71,7 @@ func (cm *CitationManager) findCitation(request *restful.Request, response *rest
 	for _, getter := range cm.Sources {
 		citation, err := getter.GetCitationByNumber(number)
 		if err != nil && err != NoCitationFound {
-			log.Printf("There was an error getting citations from %s: %s", getter, err)
+			log.Printf("There was an error getting citations from %s: %s", getter.String(), err)
 		}
 
 		citations = append(citations, citation...)

@@ -1,15 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
 )
 
 func main() {
+	configFile := flag.String("config", "config.json", "-config <configfile>: use to override the default config file (config.json)")
+	flag.Parse()
+	config := ParseConfig(*configFile)
+	if config.DBUser == "" {
+		log.Fatalf("Could not read config file! exiting....")
+	}
+
 	cm := &CitationManager{}
-	cm.AddSource(NewSampleGetter("root", "my-secret-pw", "tcp(192.168.1.116:3306)", "civicCitations"))
+	cm.AddSource(NewSampleGetter(config.DBUser, config.DBPassword, config.DBAddress, config.Database))
 
 	ws := new(restful.WebService)
 	ws.Path("/api").
@@ -29,6 +38,9 @@ func main() {
 		Writes(CitationResponse{}))
 
 	restful.Add(ws)
-	fmt.Println("Starting server on :6969")
-	http.ListenAndServe("0.0.0.0:6969", nil)
+	log.Printf("Starting server on :%d", config.ServerPort)
+	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.ServerPort), nil)
+	if err != nil {
+		log.Fatalf("Error running server: %s", err)
+	}
 }

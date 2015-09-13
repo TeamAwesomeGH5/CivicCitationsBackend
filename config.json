@@ -1,0 +1,7 @@
+{
+  "ServerPort":9001,
+  "DBUser":"root",
+  "DBPassword":"my-secret-pw",
+  "DBAddress":"192.168.1.116",
+  "Database":"civicCitations"
+}
