@@ -38,7 +38,9 @@ func main() {
 		Writes(CitationResponse{}))
 
 	restful.Filter(enableCORS)
+	restful.Filter(restful.OPTIONSFilter())
 	restful.Add(ws)
+
 	log.Printf("Starting server on :%d", config.ServerPort)
 	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.ServerPort), nil)
 	if err != nil {
@@ -49,6 +51,8 @@ func main() {
 func enableCORS(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	if origin := req.HeaderParameter(restful.HEADER_Origin); origin != "" {
 		resp.AddHeader(restful.HEADER_AccessControlAllowOrigin, origin)
+		resp.AddHeader(restful.HEADER_AccessControlAllowMethods, "GET,POST,OPTIONS,PUT,DELETE")
+		resp.AddHeader(restful.HEADER_AccessControlAllowHeaders, fmt.Sprintf("%s,%s", restful.HEADER_AccessControlAllowOrigin, restful.HEADER_ContentType))
 	}
 	chain.ProcessFilter(req, resp)
 }

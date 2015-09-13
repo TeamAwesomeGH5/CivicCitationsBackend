@@ -11,6 +11,27 @@ import (
 	"github.com/emicklei/go-restful"
 )
 
+//multiple citations
+//{
+//   "license_number":"A840420280",
+//   "last_name":"Grant",
+//   "dob":"4/10/1992"
+//}
+
+//no violations?
+//{
+//   "license_number":"O890037612",
+//   "last_name":"Phillips",
+//   "dob":"12/30/1975"
+//}
+
+//Multiple violations
+//{
+//   "license_number":"O499664777",
+//   "last_name":"Duncan",
+//   "dob":"8/10/1995"
+//}
+
 var NoCitationFoundText string = "No citations were found matching the provided criteria."
 var NoCitationFound = errors.New(NoCitationFoundText)
 
@@ -28,6 +49,7 @@ type Citation struct {
 	CourtDate            string `json:"court_date"`
 	CourtLocation        string `json:"court_location"`
 	CourtAddress         string `json:"court_address"`
+	Violations           Violations
 }
 
 func NewCitation() Citation {
@@ -105,22 +127,6 @@ func (cm *CitationManager) findAllCitationsForUser(request *restful.Request, res
 		log.Printf("Error reading request body\n %s\n %s", string(body), err)
 		response.WriteEntity(CitationResponse{Message: fmt.Sprintf("Could not read request body %s", string(body))})
 	}
-
-	// lastName, err := request.BodyParameter("last_name")
-	// if err != nil {
-	// 	log.Printf("lastName is invalid: %s", lastName)
-	// }
-	// log.Printf("lastName is %s", params.LastName)
-	// licenseNumber, err := request.BodyParameter("license_number")
-	// if err != nil {
-	// 	log.Printf("lastName is invalid: %s", licenseNumber)
-	// }
-	// log.Printf("license_number is %s", params.LicenseNumber)
-	// dob, err := request.BodyParameter("dob")
-	// if err != nil {
-	// 	log.Printf("lastName is invalid: %s", dob)
-	// }
-	// log.Printf("dob is %s", params.Dob)
 
 	citations := []Citation{}
 	for _, getter := range cm.Sources {
