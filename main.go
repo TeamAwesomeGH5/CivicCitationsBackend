@@ -37,10 +37,18 @@ func main() {
 		Param(ws.BodyParameter("license_number", "License number of the person to get citations for.")).
 		Writes(CitationResponse{}))
 
+	restful.Filter(enableCORS)
 	restful.Add(ws)
 	log.Printf("Starting server on :%d", config.ServerPort)
 	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", config.ServerPort), nil)
 	if err != nil {
 		log.Fatalf("Error running server: %s", err)
 	}
+}
+
+func enableCORS(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+	if origin := req.HeaderParameter(restful.HEADER_Origin); origin != "" {
+		resp.AddHeader(restful.HEADER_AccessControlAllowOrigin, origin)
+	}
+	chain.ProcessFilter(req, resp)
 }

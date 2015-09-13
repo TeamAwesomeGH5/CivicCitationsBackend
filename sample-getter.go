@@ -64,6 +64,38 @@ func (sg SampleGetter) GetCitationByNumber(number uint64) ([]Citation, error) {
 
 	return cits, nil
 }
+
+func (sg SampleGetter) GetCitationsByUser(lastname, licensenumber, dob string) ([]Citation, error) {
+	//rows, err := sg.Query(fmt.Sprintf("SELECT * FROM citations WHERE last_name = 'Grant';"))
+	rows, err := sg.Query(fmt.Sprintf("SELECT * FROM citations WHERE last_name = '%s';", lastname))
+
+	log.Printf(fmt.Sprintf("SELECT * FROM citations WHERE last_name = '%s';", lastname))
+	log.Printf(lastname)
+
+	//rows, err := sg.Query("SELECT * FROM citations WHERE last_name=?;", lastname)
+
+	//rows, err := db.Query("SELECT name FROM users WHERE age=?", age)
+	if err != nil {
+		log.Printf("There was an error getting a citation from Sample-Getter: %s", err)
+		return []Citation{}, err
+	}
+
+	//build Citations
+	cits := []Citation{}
+
+	for rows.Next() {
+		var cit Citation = NewCitation()
+		var scrap int
+		if err := rows.Scan(&scrap, &cit.Id, &cit.CitationNumber, &cit.CitationDate, &cit.FirstName, &cit.LastName, &cit.DOB, &cit.DefendantAddress, &cit.DefendantCity, &cit.DefendantState, &cit.DriversLicenseNumber, &cit.CourtDate, &cit.CourtLocation, &cit.CourtAddress); err != nil {
+			return []Citation{}, err
+		}
+
+		cits = append(cits, cit)
+	}
+
+	return cits, nil
+}
+
 func (sg SampleGetter) GetViolationsForCitation(citation Citation) (Violations, error) {
 	return Violations{}, nil
 }

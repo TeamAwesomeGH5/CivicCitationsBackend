@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strconv"
 
@@ -84,21 +86,52 @@ func (cm *CitationManager) findCitation(request *restful.Request, response *rest
 	response.WriteEntity(CitationResponse{Citations: citations, Valid: true, Message: ""})
 }
 
+type Params struct {
+	LicenseNumber string `json:"license_number"`
+	LastName      string `json:"last_name"`
+	Dob           string `json:"dob"`
+}
+
 func (cm *CitationManager) findAllCitationsForUser(request *restful.Request, response *restful.Response) {
-	lastName, err := request.BodyParameter("last_name")
+	body, err := ioutil.ReadAll(request.Request.Body)
+	defer request.Request.Body.Close()
 	if err != nil {
-		log.Printf("lastName is invalid: %s", lastName)
+		log.Printf("Unable to print body %s", err)
+
 	}
-	licenseNumber, err := request.BodyParameter("license_number")
+	var params Params
+	err = json.Unmarshal(body, &params)
 	if err != nil {
-		log.Printf("lastName is invalid: %s", licenseNumber)
-	}
-	dob, err := request.BodyParameter("dob")
-	if err != nil {
-		log.Printf("lastName is invalid: %s", dob)
+		log.Printf("Error reading request body\n %s\n %s", string(body), err)
+		response.WriteEntity(CitationResponse{Message: fmt.Sprintf("Could not read request body %s", string(body))})
 	}
 
+	// lastName, err := request.BodyParameter("last_name")
+	// if err != nil {
+	// 	log.Printf("lastName is invalid: %s", lastName)
+	// }
+	// log.Printf("lastName is %s", params.LastName)
+	// licenseNumber, err := request.BodyParameter("license_number")
+	// if err != nil {
+	// 	log.Printf("lastName is invalid: %s", licenseNumber)
+	// }
+	// log.Printf("license_number is %s", params.LicenseNumber)
+	// dob, err := request.BodyParameter("dob")
+	// if err != nil {
+	// 	log.Printf("lastName is invalid: %s", dob)
+	// }
+	// log.Printf("dob is %s", params.Dob)
+
 	citations := []Citation{}
+	for _, getter := range cm.Sources {
+		citation, err := getter.GetCitationsByUser(params.LastName, params.LicenseNumber, params.Dob)
+		if err != nil && err != NoCitationFound {
+			log.Printf("There was an error getting citations from %s: %s", getter.String(), err)
+		}
+
+		citations = append(citations, citation...)
+	}
+
 	if len(citations) < 1 {
 		response.WriteEntity(CitationResponse{Citations: citations, Valid: false, Message: NoCitationFoundText})
 		return
