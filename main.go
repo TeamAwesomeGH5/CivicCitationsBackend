@@ -25,11 +25,6 @@ func main() {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("citation/{number}").To(cm.findCitation).
-		Doc("Gets a citation by number").
-		Param(ws.PathParameter("number", "identifier of the citation").DataType("uint64")).
-		Writes(CitationResponse{}))
-
 	ws.Route(ws.POST("citations/").To(cm.findAllCitationsForUser).
 		Doc("Get all citations for a user given the correct params.").
 		Param(ws.BodyParameter("last_name", "Last name of the person to get citations for.")).

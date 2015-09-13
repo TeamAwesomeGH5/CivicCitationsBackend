@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/emicklei/go-restful"
 )
@@ -84,30 +85,7 @@ func (cm *CitationManager) AddSource(g Getter) {
 	cm.Sources = append(cm.Sources, g)
 }
 
-func (cm *CitationManager) findCitation(request *restful.Request, response *restful.Response) {
-	citationNumber := request.PathParameter("number")
-	number, err := GetCitationNumber(citationNumber)
-	if err != nil {
-		response.WriteEntity(CitationResponse{Message: err.Error()})
-		return
-	}
-	citations := []Citation{}
-	for _, getter := range cm.Sources {
-		citation, err := getter.GetCitationByNumber(number)
-		if err != nil && err != NoCitationFound {
-			log.Printf("There was an error getting citations from %s: %s", getter.String(), err)
-		}
-
-		citations = append(citations, citation...)
-	}
-
-	if len(citations) < 1 {
-		response.WriteEntity(CitationResponse{Citations: citations, Valid: false, Message: NoCitationFoundText})
-		return
-	}
-	response.WriteEntity(CitationResponse{Citations: citations, Valid: true, Message: ""})
-}
-
+//TODO: Replace with BodyParameter.
 type Params struct {
 	LicenseNumber string `json:"license_number"`
 	LastName      string `json:"last_name"`
@@ -129,13 +107,30 @@ func (cm *CitationManager) findAllCitationsForUser(request *restful.Request, res
 	}
 
 	citations := []Citation{}
+	resultsChannel := make(chan []Citation, 10)
+	numResults := len(cm.Sources)
 	for _, getter := range cm.Sources {
-		citation, err := getter.GetCitationsByUser(params.LastName, params.LicenseNumber, params.Dob)
-		if err != nil && err != NoCitationFound {
-			log.Printf("There was an error getting citations from %s: %s", getter.String(), err)
+		go RetrieveCitations(resultsChannel, getter, params)
+	}
+	//Wait for a timeout on the getters.
+	timeout := 30 * time.Second
+	now := time.Now()
+	for {
+		if time.Since(now) > timeout || numResults <= 0 {
+			if numResults > 0 {
+				log.Printf("Timed out after %s", timeout)
+			}
+			break
 		}
-
-		citations = append(citations, citation...)
+		select {
+		case found := <-resultsChannel:
+			citations = append(citations, found...)
+			numResults -= 1
+			log.Printf("Got %d citations!", len(citations))
+			break
+		default:
+			//Just fall through.
+		}
 	}
 
 	if len(citations) < 1 {
@@ -143,6 +138,23 @@ func (cm *CitationManager) findAllCitationsForUser(request *restful.Request, res
 		return
 	}
 	response.WriteEntity(CitationResponse{Citations: citations, Valid: true, Message: ""})
+}
+
+func RetrieveCitations(results chan []Citation, getter Getter, params Params) {
+	citations, err := getter.GetCitationsByUser(params.LastName, params.LicenseNumber, params.Dob)
+	if err != nil && err != NoCitationFound {
+		log.Printf("There was an error getting citations from %s: %s", getter.String(), err)
+	}
+	log.Printf("Retrieved %d citations", len(citations))
+	select {
+	//NOTE: Non blcoking writes will allow for the goroutines to exit cleanly.
+	case results <- citations:
+		log.Printf("Got %d from getter %s", len(citations), getter.String())
+		break
+	default:
+		log.Printf("Channel is full, loosing %d citation records. :(", len(citations))
+	}
+	return
 }
 
 func GetCitationNumber(citationNumber string) (uint64, error) {

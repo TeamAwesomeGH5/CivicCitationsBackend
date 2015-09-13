@@ -77,7 +77,6 @@ func (sg SampleGetter) GetCitationsByUser(lastname, licensenumber, dob string) (
 
 	//build Citations
 	cits := []Citation{}
-
 	for rows.Next() {
 		var cit Citation = NewCitation()
 		var scrap int
@@ -102,7 +101,6 @@ func (sg SampleGetter) GetCitationsByUser(lastname, licensenumber, dob string) (
 func (sg SampleGetter) GetViolationsForCitation(citation Citation) (Violations, error) {
 	rows, err := sg.Query(fmt.Sprintf("SELECT * FROM violations WHERE citation_number = '%d';", citation.CitationNumber))
 
-	log.Printf("SELECT * FROM violations WHERE citation_number = '%d';", citation.CitationNumber)
 	//log.Printf(fmt.Sprintf("SELECT * FROM citations WHERE last_name = '%s';", lastname))
 
 	if err != nil {
